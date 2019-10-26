@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "server.h": "c",
+        "systools.h": "c",
+        "ctype.h": "c",
+        "stdio.h": "c",
+        "memory.h": "c",
+        "string.h": "c",
+        "socket.h": "c",
+        "execute_func.h": "c",
+        "headers.h": "c",
+        "session_ftp.h": "c",
+        "strtools.h": "c",
+        "handle_ftp.h": "c",
+        "syscall.h": "c",
+        "priv_sock.h": "c"
+    }
+}
