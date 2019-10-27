@@ -40,6 +40,9 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	int u = 1;
+	scanf("%d", &u);
+
 	//持续监听连接请求
 	while (1) {
 		//等待client的连接 -- 阻塞函数

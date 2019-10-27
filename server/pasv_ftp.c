@@ -68,7 +68,7 @@ void privop_pasv_get_data_sock(Session_t *sess){
     uint16_t port = priv_sock_recv_int(sess->nobody_fd);
 
     //创建fd
-    printf("=====Begin to create data_fd=====\n");
+    printf("=====Begin to create data_fd, port =%d=====\n", port);
     int data_fd;
     
     //创建socket
@@ -100,8 +100,12 @@ void privop_pasv_get_data_sock(Session_t *sess){
 		printf("Error inet_pton(): %s(%d)\n", strerror(errno), errno);
 		return;
 	}
-
-	//连接上目标主机（将socket和目标主机连接）-- 阻塞函数
+    
+    printf("Before the connect()\n");
+    int ss  = 0;
+    scanf("%d", &ss);
+	
+    //连接上目标主机（将socket和目标主机连接）-- 阻塞函数
 	if (connect(data_fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
 		printf("Error connect(): %s(%d)\n", strerror(errno), errno);
 		return;
@@ -109,11 +113,106 @@ void privop_pasv_get_data_sock(Session_t *sess){
 		printf("Connected !\n");
 	}
 
+    scanf("%d", &ss);
+
+    sess->data_fd = data_fd;
     printf("=====Finished to create data_fd: %d=====\n", data_fd);
+    
+    int argsLen = priv_sock_recv_int(sess->nobody_fd); //接受args 的长度
+    priv_sock_recv_str(sess->nobody_fd, sess->args, argsLen); //接受args 文件地址
+    
+
     printf("sess->com: %s\n", sess->com);
     printf("sess->args: %s\n", sess->args);
+    
+    int transret = transferFIleNobody(sess);
+    printf("transret = %d\n", transret);
+    priv_sock_send_result(sess->nobody_fd, transret);
 
-    priv_sock_send_result(sess->nobody_fd, PRIV_SOCK_RESULT_OK);
-    priv_sock_send_int(sess->nobody_fd, data_fd);
-    close(data_fd);
+    // priv_sock_send_int(sess->nobody_fd, data_fd);
+    // close(data_fd);
+}
+
+// 返回传输结果 1 正常 2 失败
+int transferFIleNobody(Session_t *sess){
+
+    //open 文件
+    int fd = open(sess->args, O_RDONLY);
+    if(fd == -1)
+    {
+        printf("Failed to open file.\n");
+        return -1;
+    }
+
+    struct stat sbuf;
+    if(fstat(fd, &sbuf) == -1) //获取文件状态
+    {
+        printf("Failed to get the stat of file.\n");
+        ERR_EXIT("fstat");
+    }
+        
+
+    //判断断点续传
+    unsigned long filesize = sbuf.st_size;//剩余的文件字节
+    int offset = sess->restart_pos;
+    if(offset != 0)
+    {
+        filesize -= offset;
+    }
+
+    if(lseek(fd, offset, SEEK_SET) == -1) //lseek用于重新定位文件读写的位移
+    {
+        printf("Error lseek\n");
+        ERR_EXIT("lseek");
+    }
+        
+    //仅有二进制模式
+    printf("Binary mode\n");
+
+    // //记录时间
+    // sess->start_time_sec = get_curr_time_sec();
+    // sess->start_time_usec = get_curr_time_usec();
+    // int qq;
+    // scanf("%d", qq);
+    //传输
+    int flag = 1; //记录下载的结果
+    int nleft = filesize; //剩余字节数
+    int block_size = 0; //一次传输的字节数
+    const int kSize = 65536;
+    while(nleft > 0)
+    {
+        block_size = (nleft > kSize) ? kSize : nleft;//读取字节数
+        //sendfile发生在内核，更加高效
+        int nwrite = sendfile(sess->data_fd, fd, NULL, block_size);
+
+        printf("block_size = %d, nwrite = %d\n", block_size, nwrite);
+
+        // if(sess->is_receive_abor == 1)
+        // {
+        //     flag = 2; //ABOR
+        //     //426
+        //     reply_ftp(sess, FTP_BADSENDNET, "Interupt downloading file.");
+        //     sess->is_receive_abor = 0;
+        //     break;
+        // }
+
+        if(nwrite == -1)
+        {
+            printf("Something wrong in transfer.\n");
+            flag = 1; //错误
+            break;
+        }
+        nleft -= nwrite;
+    }
+    if(nleft == 0)
+        flag = 0; //正确退出
+
+    close(fd); //关闭文件描述符
+    close(sess->data_fd); //关闭tcp连接
+    sess->data_fd = -1;
+
+    if (flag == 1) return -1;
+
+    printf("Finished transfer in transferFIleNobody.\n");
+    return 1;
 }

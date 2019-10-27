@@ -43,18 +43,23 @@ void get_port_data_fd(Session_t *sess){
     uint16_t port = ntohs(sess->p_addr->sin_port);
     priv_sock_send_str(sess->proto_fd, ip, strlen(ip));
     priv_sock_send_int(sess->proto_fd, port);
-    //接收应答
-    char result = priv_sock_recv_result(sess->proto_fd);
-    if(result == PRIV_SOCK_RESULT_BAD)
-    {
-        reply_ftp(sess, 500, "get pasv data_fd error");
-        fprintf(stderr, "get data fd error\n");
-        exit(EXIT_FAILURE);
-    }
-    //接收fd
-    sess->data_fd = priv_sock_recv_int(sess->proto_fd);
-    printf("Received data_fd: %d\n", sess->data_fd);
-    printf("Origin connfd: %d\n", sess->connfd);
+
+    priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
+    priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
+    //补充相关代码
+
+    // //接收应答
+    // char result = priv_sock_recv_result(sess->proto_fd);
+    // if(result == PRIV_SOCK_RESULT_BAD)
+    // {
+    //     reply_ftp(sess, 500, "get pasv data_fd error");
+    //     fprintf(stderr, "get data fd error\n");
+    //     exit(EXIT_FAILURE);
+    // }
+    // //接收fd
+    // // sess->data_fd = priv_sock_recv_int(sess->proto_fd);
+    // printf("Received data_fd: %d\n", sess->data_fd);
+    // printf("Origin connfd: %d\n", sess->connfd);
 
     //释放port模式
     free(sess->p_addr);

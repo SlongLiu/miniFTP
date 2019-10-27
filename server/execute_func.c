@@ -156,14 +156,39 @@ void run_retr(Session_t *sess){
     //进入数据传输阶段
     sess->is_translating_data = 1;
 
-    //获取data_fd
-    if(get_trans_data_fd(sess) == 0)
+    //获取data_fd 现在主要发args
+    if(get_trans_data_fd(sess) == 0) 
     {
         reply_ftp(sess, 550, "Failed to get_trans_data_fd.");
         return;
     }
 
-    //open 文件
+    reply_ftp(sess, 150, "Attemp");
+
+    int mark = priv_sock_recv_result(sess->proto_fd);
+
+    if (mark == 1){
+        reply_ftp(sess, 226, "Transfer complete.");
+    }else{
+        reply_ftp(sess, 451, "Sendfile failed.");
+    }
+
+    // //226
+    // if(flag == 0)
+    //     reply_ftp(sess, 226, "Transfer complete.");
+    // else if(flag == 1)
+    //     reply_ftp(sess, 451, "Sendfile failed.");
+    // else if(flag == 2)
+    //     reply_ftp(sess, 226, "ABOR successful.");
+
+    //先恢复控制连接的信号
+    // setup_signal_alarm_ctrl_fd();
+    sess->is_translating_data = 0;    
+}
+
+/*
+====无用代码仓库===
+//open 文件
     int fd = open(sess->args, O_RDONLY);
     if(fd == -1)
     {
@@ -245,18 +270,7 @@ void run_retr(Session_t *sess){
     // if(unlock_file(fd) == -1)
     //     ERR_EXIT("unlock_file");
     close(fd);
+    
     close(sess->data_fd);
     sess->data_fd = -1;
-
-    //226
-    if(flag == 0)
-        reply_ftp(sess, 226, "Transfer complete.");
-    else if(flag == 1)
-        reply_ftp(sess, 451, "Sendfile failed.");
-    else if(flag == 2)
-        reply_ftp(sess, 226, "ABOR successful.");
-
-    //先恢复控制连接的信号
-    // setup_signal_alarm_ctrl_fd();
-    sess->is_translating_data = 0;    
-}
+*/

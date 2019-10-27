@@ -51,6 +51,10 @@ int  main(int argc, const char *argv[]){
     Session_t sess;
     session_init(&sess);
 
+	// int ii=0;
+	// printf("Scan1\n");
+	// scanf("%d", ii);
+
     printf("Begin the loop\n");
     while(1){
  		//等待client的连接 -- 阻塞函数

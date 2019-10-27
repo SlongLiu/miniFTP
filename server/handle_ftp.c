@@ -35,7 +35,7 @@ void handle_proto(Session_t* sess){
 //nobody时刻准备从子进程接受命令
 void handle_nobody(Session_t* sess){
     //设置为nobody进程
-    set_nobody();
+    // set_nobody();
     //添加绑定20端口的特权
     set_bind_capabilities();
     printf("FInished the setting\n");
