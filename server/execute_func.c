@@ -82,6 +82,9 @@ void run_pass(Session_t *sess){
             // reply_ftp(sess, 230, "-");
             // reply_ftp(sess, 230, "");
         }
+    }else{
+        reply_ftp(sess, 501, "Incorrect username or password.");
+        return;
     }
 }
 
