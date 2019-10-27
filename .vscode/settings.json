@@ -13,6 +13,7 @@
         "strtools.h": "c",
         "handle_ftp.h": "c",
         "syscall.h": "c",
-        "priv_sock.h": "c"
+        "priv_sock.h": "c",
+        "crypt.h": "c"
     }
 }

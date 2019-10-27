@@ -28,6 +28,8 @@ void execute_map(Session_t *sess){
                 run_pasv(sess);
             }else if (strcmp(sess->com, "RETR")==0){
                 run_retr(sess);
+            }else if (strcmp(sess->com, "STOR")==0){
+                run_stor(sess);
             }else{
                 reply_ftp(sess, 504, "Undefined command");
             }
@@ -151,7 +153,7 @@ void run_pasv(Session_t *sess)
     reply_ftp(sess, 227, text);
 }
 
-//run_retr 未完成
+//指示nobody进程发送文件
 void run_retr(Session_t *sess){
     //进入数据传输阶段
     sess->is_translating_data = 1;
@@ -163,7 +165,14 @@ void run_retr(Session_t *sess){
         return;
     }
 
-    reply_ftp(sess, 150, "Attemp");
+    int readMark = priv_sock_recv_int(sess->proto_fd);
+    if (readMark == 1){
+        reply_ftp(sess, 150, "OK before the transfer");
+    }else{
+        reply_ftp(sess, 550, "Failed to open file");
+        return;
+    }
+    
 
     int mark = priv_sock_recv_result(sess->proto_fd);
 
@@ -181,10 +190,39 @@ void run_retr(Session_t *sess){
     // else if(flag == 2)
     //     reply_ftp(sess, 226, "ABOR successful.");
 
-    //先恢复控制连接的信号
-    // setup_signal_alarm_ctrl_fd();
     sess->is_translating_data = 0;    
 }
+
+void run_stor(Session_t *sess){
+    //进入数据传输阶段
+    sess->is_translating_data = 1;
+
+     //获取data_fd 现在主要发args
+    if(get_trans_data_fd(sess) == 0) 
+    {
+        reply_ftp(sess, 550, "Failed to get_trans_data_fd.");
+        return;
+    }
+
+    int readMark = priv_sock_recv_int(sess->proto_fd);
+    if (readMark == 1){
+        reply_ftp(sess, 150, "OK before the transfer");
+    }else{
+        reply_ftp(sess, 550, "Failed to open file");
+        return;
+    }
+
+    int mark = priv_sock_recv_result(sess->proto_fd);
+
+     if (mark == 1){
+        reply_ftp(sess, 226, "Transfer complete.");
+    }else{
+        reply_ftp(sess, 451, "Sendfile failed.");
+    }
+
+    sess->is_translating_data = 0;    
+}
+
 
 /*
 ====无用代码仓库===

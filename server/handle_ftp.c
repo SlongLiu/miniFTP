@@ -37,7 +37,7 @@ void handle_nobody(Session_t* sess){
     //设置为nobody进程
     // set_nobody();
     //添加绑定20端口的特权
-    set_bind_capabilities();
+    // set_bind_capabilities();
     printf("FInished the setting\n");
 
     char cmd;
@@ -61,7 +61,7 @@ void handle_nobody(Session_t* sess){
                 break;
             case PRIV_SOCK_PASV_ACCEPT:
                 printf("4 PRIV_SOCK_PASV_ACCEPT\n");
-                // privop_pasv_accept(sess); //pasv模式下 接收到命令 
+                privop_pasv_accept(sess); //pasv模式下 接收到命令 
                 break;
             default:
                 fprintf(stderr, "Unkown command\n");

@@ -28,8 +28,8 @@ int get_trans_data_fd(Session_t *sess){
     }
 
     if(is_pasv){
-        // get_pasv_data_fd(sess);
-        printf("Something wrong for is_pasv==1\n");
+        get_pasv_data_fd(sess);
+        // printf("Something wrong for is_pasv==1\n");
     }
 
     return 1;
@@ -43,6 +43,9 @@ void get_port_data_fd(Session_t *sess){
     uint16_t port = ntohs(sess->p_addr->sin_port);
     priv_sock_send_str(sess->proto_fd, ip, strlen(ip));
     priv_sock_send_int(sess->proto_fd, port);
+
+    priv_sock_send_int(sess->proto_fd, strlen(sess->com));//发送com 的长度
+    priv_sock_send_str(sess->proto_fd, sess->com, strlen(sess->com)); //发送com文件地址
 
     priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
     priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
@@ -66,19 +69,26 @@ void get_port_data_fd(Session_t *sess){
     sess->p_addr = NULL;    
 }
 
-// void get_pasv_data_fd(Session_t *sess){
-//     //先给nobody发命令
-//     priv_sock_send_cmd(sess->proto_fd, PRIV_SOCK_PASV_ACCEPT);
+void get_pasv_data_fd(Session_t *sess){
+    //先给nobody发命令
+    priv_sock_send_cmd(sess->proto_fd, PRIV_SOCK_PASV_ACCEPT);
 
-//     //接收结果
-//     char res = priv_sock_recv_result(sess->proto_fd);
-//     if(res == PRIV_SOCK_RESULT_BAD)
-//     {
-//         ftp_reply(sess, 500, "get pasv data_fd error");
-//         fprintf(stderr, "get data fd error\n");
-//         exit(EXIT_FAILURE);
-//     }
+    priv_sock_send_int(sess->proto_fd, strlen(sess->com));//发送com 的长度
+    priv_sock_send_str(sess->proto_fd, sess->com, strlen(sess->com)); //发送com文件地址
 
-//     //接收fd
-//     sess->data_fd = priv_sock_recv_fd(sess->proto_fd);
-// }
+
+    priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
+    priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
+
+    // //接收结果
+    // char res = priv_sock_recv_result(sess->proto_fd);
+    // if(res == PRIV_SOCK_RESULT_BAD)
+    // {
+    //     ftp_reply(sess, 500, "get pasv data_fd error");
+    //     fprintf(stderr, "get data fd error\n");
+    //     exit(EXIT_FAILURE);
+    // }
+
+    // //接收fd
+    // sess->data_fd = priv_sock_recv_fd(sess->proto_fd);
+}
