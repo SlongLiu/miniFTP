@@ -86,7 +86,7 @@ void run_type(Session_t *sess){
 
 void run_quit(Session_t *sess){
     reply_ftp(sess, 221, "Good Bye!");
-
+    priv_sock_send_cmd(sess->proto_fd,5);
     sess->islogin = 0;
     memset(sess->user, 0, sizeof(sess->user));
 

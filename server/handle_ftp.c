@@ -23,9 +23,15 @@ void handle_proto(Session_t* sess){
 
         str_trim_crlf(sess->command);
         str_split(sess->command, sess->com, sess->args, ' ');
-        str_upper(sess->com);		
-        printf("COMMD=[%s], ARGS=[%s]\n", sess->com, sess->args);
+        str_upper(sess->com);	
 
+        printf("COMMD=[%s], ARGS=[%s]\n", sess->com, sess->args);
+        if (strcmp(sess->com,"QUIT")==0){
+            reply_ftp(sess, 221, "Good Bye!");
+            printf("Receive QUIT, return.\n");
+            return;
+        }
+        
         execute_map(sess);
 
     }
@@ -62,6 +68,9 @@ void handle_nobody(Session_t* sess){
             case PRIV_SOCK_PASV_ACCEPT:
                 printf("4 PRIV_SOCK_PASV_ACCEPT\n");
                 privop_pasv_accept(sess); //pasv模式下 接收到命令 
+                break;
+            case 5:
+                printf("5 CLOSE NOBODY\n");
                 break;
             default:
                 fprintf(stderr, "Unkown command\n");
