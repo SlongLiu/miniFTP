@@ -27,6 +27,8 @@ typedef struct
 
     long long restart_pos; //传输断点
 
+    char* rnfr_name;
+
 } Session_t;
 
 void session_init(Session_t* sess);

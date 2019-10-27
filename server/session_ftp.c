@@ -31,6 +31,8 @@ void session_init(Session_t* sess){
 
     sess->is_translating_data = 1;
     sess->restart_pos = 0;
+
+    sess->rnfr_name = NULL;
 }
 
 void session_reset_command(Session_t* sess){

@@ -30,6 +30,20 @@ void execute_map(Session_t *sess){
                 run_retr(sess);
             }else if (strcmp(sess->com, "STOR")==0){
                 run_stor(sess);
+            }else if (strcmp(sess->com, "MKD")==0){
+                run_mkd(sess);
+            }else if (strcmp(sess->com, "CWD")==0){
+                run_cwd(sess);
+            }else if (strcmp(sess->com, "PWD")==0){
+                run_pwd(sess);
+            }else if (strcmp(sess->com, "RMD")==0){
+                run_rmd(sess);
+            }else if (strcmp(sess->com, "RNFR")==0){
+                run_rnfr(sess);
+            }else if (strcmp(sess->com, "RNTO")==0){
+                run_rnto(sess);
+            }else if (strcmp(sess->com, "LIST")==0){
+                run_list(sess);
             }else{
                 reply_ftp(sess, 504, "Undefined command");
             }
@@ -223,6 +237,150 @@ void run_stor(Session_t *sess){
     sess->is_translating_data = 0;    
 }
 
+void run_mkd(Session_t *sess){
+
+    if(mkdir(sess->args, 0777) == -1){
+        reply_ftp(sess, 550, "Create directory failed.");
+        return;
+    }
+
+    char text[1124] = {0};
+    if(sess->args[0] == '/') //绝对路径
+    {
+        snprintf(text, sizeof text, "%s created.", sess->args);
+    }
+    else{
+        //char *getcwd(char *buf, size_t size);
+        char tmp[1024] = {0};
+        if(getcwd(tmp, sizeof tmp) == NULL){
+            reply_ftp(sess, 550, "Something wrong in getcwd");
+            ERR_EXIT("getcwd");
+        }
+        snprintf(text, sizeof text, "%s/%s created.", tmp, sess->args);
+    }
+
+    reply_ftp(sess, 257, text);
+}
+
+void run_cwd(Session_t *sess)
+{
+    if(chdir(sess->args) == -1) {
+        //550
+        reply_ftp(sess, 550, "Failed to change directory.");
+        return;
+    }else{
+        //250 Directory successfully changed.
+        char text[1124] = {0};
+        snprintf(text, sizeof text, "Successfully changed to %s", sess->args);
+        reply_ftp(sess, 250, text);
+    }
+}
+
+void run_pwd(Session_t *sess)
+{
+    char tmp[1024] = {0};
+    if(getcwd(tmp, sizeof tmp) == NULL)
+    {
+        //return值为-1/0，函数进入系统内核，
+        //返回值判断用perror
+        //返回值为NULL,不用perror，fprintf(stderr, "a");
+        fprintf(stderr, "get cwd error\n");
+        reply_ftp(sess, 504, "error");
+        return;
+    }
+    char text[1024] = {0};
+    snprintf(text, sizeof text, "Your dictionary: \"%s\"", tmp);
+    reply_ftp(sess, 257, text);
+}
+
+void run_rmd(Session_t *sess)
+{
+    if(rmdir(sess->args) == -1){
+        //550 Remove directory operation failed.
+        reply_ftp(sess, 550, "Remove directory operation failed.");
+        return;
+    }else{
+        //250 Remove directory operation successful.
+        reply_ftp(sess, 250, "Remove directory operation successful.");
+    }
+}
+
+void run_rnfr(Session_t *sess)
+{
+    if(sess->rnfr_name) //防止内存泄露
+    {
+        free(sess->rnfr_name);
+        sess->rnfr_name = NULL;
+    }
+    sess->rnfr_name = (char*)malloc(strlen(sess->args)+1);
+    strcpy(sess->rnfr_name, sess->args);
+    //350 Ready for RNTO.
+    reply_ftp(sess, 350, "Ready for RNTO.");
+}
+
+void run_rnto(Session_t *sess)
+{
+    if(sess->rnfr_name == NULL){
+        //503 RNFR required first.
+        reply_ftp(sess, 503, "RNFR required first.");
+        return;
+    }
+
+    if(rename(sess->rnfr_name, sess->args) == -1){
+        reply_ftp(sess, 550, "Rename failed.");
+        return;
+    }
+    
+    char text[1224] = {0};
+    snprintf(text, sizeof text, "Change from %s to %s", sess->rnfr_name, sess->args);
+    
+    if(sess->rnfr_name != NULL) {
+        free(sess->rnfr_name);
+        sess->rnfr_name = NULL;
+    }
+
+    //250 Rename successful.
+    reply_ftp(sess, 250, text);
+}
+
+void run_list(Session_t *sess){
+    //进入数据传输阶段
+    sess->is_translating_data = 1;
+
+    //获取data_fd 现在主要发args
+    if(get_trans_data_fd(sess) == 0) 
+    {
+        reply_ftp(sess, 550, "Failed to get_trans_data_fd.");
+        return;
+    }
+
+    int readMark = priv_sock_recv_int(sess->proto_fd);
+    if (readMark == 1){
+        reply_ftp(sess, 150, "OK before the transfer");
+    }else{
+        reply_ftp(sess, 550, "Failed to open file");
+        return;
+    }
+    
+
+    int mark = priv_sock_recv_result(sess->proto_fd);
+
+    if (mark == 1){
+        reply_ftp(sess, 226, "Transfer complete.");
+    }else{
+        reply_ftp(sess, 451, "Sendfile failed.");
+    }
+
+    // //226
+    // if(flag == 0)
+    //     reply_ftp(sess, 226, "Transfer complete.");
+    // else if(flag == 1)
+    //     reply_ftp(sess, 451, "Sendfile failed.");
+    // else if(flag == 2)
+    //     reply_ftp(sess, 226, "ABOR successful.");
+
+    sess->is_translating_data = 0;    
+}
 
 /*
 ====无用代码仓库===

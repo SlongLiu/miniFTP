@@ -2,6 +2,8 @@
 #include "headers.h"
 #include "priv_sock.h"
 #include <unistd.h>
+#include<sys/stat.h>
+#include<sys/types.h>
 
 /*
 创建监听fd， 监听并返回20端口
@@ -142,6 +144,8 @@ void privop_pasv_get_data_sock(Session_t *sess){
         transret = transferFIleNobody(sess);
     }else if (strcmp(sess->com, "STOR") == 0){
         transret = uploadFIleNobody(sess, 1);
+    }else if (strcmp(sess->com, "LIST") == 0){
+        transret = transFileList(sess);
     }else{
         printf("Error command: %s", sess->com);
     }
@@ -181,6 +185,8 @@ void privop_pasv_accept(Session_t *sess){
         transret = transferFIleNobody(sess);
     }else if (strcmp(sess->com, "STOR") == 0){
         transret = uploadFIleNobody(sess, 1);
+    }else if (strcmp(sess->com, "LIST") == 0){
+        transret = transFileList(sess);
     }else{
         printf("Error command: %s", sess->com);
     }
@@ -378,6 +384,40 @@ int uploadFIleNobody(Session_t *sess, int is_appe){
     }else{
         printf("Something wrong in uploadFIleNobody\n");
         return 2;
+    }    
+}
+
+// 查看文件名函数
+// 返回传输结果 1 正常 2 失败
+int transFileList(Session_t *sess)
+{
+    DIR *dir;
+    struct dirent *ptr;
+    // char base[1000];
+
+    if ((dir=opendir(".")) == NULL) {
+        printf("Open dir error...\n");
+        priv_sock_send_int(sess->nobody_fd, 2);
+        return 2;
+    }else
+    {
+        priv_sock_send_int(sess->nobody_fd, 1);
     }
     
+    while ((ptr=readdir(dir)) != NULL)
+    {
+        if(strcmp(ptr->d_name,".")==0 || strcmp(ptr->d_name,"..")==0)    ///current dir OR parrent dir
+            continue;
+        
+        char buf[2048] = {0};
+        strcat(buf, ptr->d_name);
+        strcat(buf, " \r\n");
+        writen(sess->data_fd, buf, strlen(buf));
+    }
+    // writen(sess->data_fd, "\r\n", strlen("\r\n"));
+    closedir(dir);
+
+    close(sess->data_fd); //关闭tcp连接
+    sess->data_fd = -1;
+    return 1;
 }
