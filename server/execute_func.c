@@ -44,6 +44,8 @@ void execute_map(Session_t *sess){
                 run_rnto(sess);
             }else if (strcmp(sess->com, "LIST")==0){
                 run_list(sess);
+            }else if (strcmp(sess->com, "REST")==0){
+                run_rest(sess);
             }else{
                 reply_ftp(sess, 504, "Undefined command");
             }
@@ -194,8 +196,10 @@ void run_retr(Session_t *sess){
     int mark = priv_sock_recv_result(sess->proto_fd);
 
     if (mark == 1){
+        sess->restart_pos = 0;
         reply_ftp(sess, 226, "Transfer complete.");
     }else{
+        priv_sock_recv_int(sess->proto_fd);
         reply_ftp(sess, 451, "Sendfile failed.");
     }
 
@@ -233,8 +237,10 @@ void run_stor(Session_t *sess){
 
      if (mark == 1){
         reply_ftp(sess, 226, "Transfer complete.");
+        // sess->restart_pos = 0;
     }else{
         reply_ftp(sess, 451, "Sendfile failed.");
+        // sess->restart_pos = priv_sock_recv_int(sess->proto_fd);
     }
 
     sess->is_translating_data = 0;    
@@ -272,6 +278,20 @@ void run_cwd(Session_t *sess)
         reply_ftp(sess, 550, "Failed to change directory.");
         return;
     }else{
+
+        priv_sock_send_cmd(sess->proto_fd, 6);//告诉nobody进程改变工作目录
+
+        priv_sock_send_int(sess->proto_fd, strlen(sess->com));//发送com 的长度
+        priv_sock_send_str(sess->proto_fd, sess->com, strlen(sess->com)); //发送com文件地址
+
+        priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
+        priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
+
+        if (priv_sock_recv_int(sess->proto_fd) == -1){
+            reply_ftp(sess, 550, "Failed to change directory.");
+            return;
+        }
+        
         //250 Directory successfully changed.
         char text[1124] = {0};
         snprintf(text, sizeof text, "Successfully changed to %s", sess->args);
@@ -385,91 +405,8 @@ void run_list(Session_t *sess){
     sess->is_translating_data = 0;    
 }
 
-/*
-====无用代码仓库===
-//open 文件
-    int fd = open(sess->args, O_RDONLY);
-    if(fd == -1)
-    {
-        reply_ftp(sess, 550, "Failed to open file.");
-        return;
-    }
-
-    // //对文件加锁
-    // if(lock_file_read(fd) == -1)
-    // {
-    //     reply_ftp(sess, 550, "Failed to open file.");
-    //     return;
-    // }
-
-    // //判断是否是普通文件
-    struct stat sbuf;
-    if(fstat(fd, &sbuf) == -1) //获取文件状态
-        ERR_EXIT("fstat");
-    // if(!S_ISREG(sbuf.st_mode))
-    // {
-    //     reply_ftp(sess, 550, "Can only download regular file.");
-    //     return;
-    // }
-
-    //判断断点续传
-    unsigned long filesize = sbuf.st_size;//剩余的文件字节
-    int offset = sess->restart_pos;
-    if(offset != 0)
-    {
-        filesize -= offset;
-    }
-
-    if(lseek(fd, offset, SEEK_SET) == -1) //lseek用于重新定位文件读写的位移
-        ERR_EXIT("lseek");
-
-    //仅有二进制模式
-    // char text[1024] = {0};
-    // snprintf(text, sizeof text, "Opening Binary mode data connection for %s (%lu bytes).", sess->args, filesize);
-    reply_ftp(sess, 150, "zhi you er jin zhi");
-
-    // //记录时间
-    // sess->start_time_sec = get_curr_time_sec();
-    // sess->start_time_usec = get_curr_time_usec();
-
-    //传输
-    int flag = 1; //记录下载的结果
-    int nleft = filesize; //剩余字节数
-    int block_size = 0; //一次传输的字节数
-    const int kSize = 65536;
-    while(nleft > 0)
-    {
-        block_size = (nleft > kSize) ? kSize : nleft;//读取字节数
-        //sendfile发生在内核，更加高效
-        int nwrite = sendfile(sess->data_fd, fd, NULL, block_size);
-
-        // if(sess->is_receive_abor == 1)
-        // {
-        //     flag = 2; //ABOR
-        //     //426
-        //     reply_ftp(sess, FTP_BADSENDNET, "Interupt downloading file.");
-        //     sess->is_receive_abor = 0;
-        //     break;
-        // }
-
-        if(nwrite == -1)
-        {
-            flag = 1; //错误
-            break;
-        }
-        nleft -= nwrite;
-
-        // //实行限速
-        // limit_curr_rate(sess, nwrite, 0);
-    }
-    if(nleft == 0)
-        flag = 0; //正确退出
-
-    // //清理 关闭fd 文件解锁
-    // if(unlock_file(fd) == -1)
-    //     ERR_EXIT("unlock_file");
-    close(fd);
-    
-    close(sess->data_fd);
-    sess->data_fd = -1;
-*/
+void run_rest(Session_t *sess){
+    sess->restart_pos = atoi(sess->args);
+    printf("sess->restart_pos=%d\n", sess->restart_pos);
+    reply_ftp(sess, 350, "Waiting for the next command.");
+}

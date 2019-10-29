@@ -89,6 +89,8 @@ int  main(int argc, const char *argv[]){
             close(listenfd);
 
             sess.connfd = connfd;
+			sess.restart_pos = 0;
+			// printf("sess->restart_pos=%d in server\n", sess.restart_pos);
             session_begin(&sess);
             //这里保证每次成功执行后退出循环
             printf("Exit the child thread\n");

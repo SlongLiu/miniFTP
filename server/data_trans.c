@@ -49,6 +49,9 @@ void get_port_data_fd(Session_t *sess){
 
     priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
     priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
+
+    printf("sess->restart_pos=%d in proto\n", sess->restart_pos);
+    priv_sock_send_int(sess->proto_fd, sess->restart_pos);//发送断点长度
     //补充相关代码
 
     // //接收应答
@@ -76,9 +79,12 @@ void get_pasv_data_fd(Session_t *sess){
     priv_sock_send_int(sess->proto_fd, strlen(sess->com));//发送com 的长度
     priv_sock_send_str(sess->proto_fd, sess->com, strlen(sess->com)); //发送com文件地址
 
-
     priv_sock_send_int(sess->proto_fd, strlen(sess->args));//发送args 的长度
     priv_sock_send_str(sess->proto_fd, sess->args, strlen(sess->args)); //发送args 文件地址
+
+    printf("sess->restart_pos=%d in proto\n", sess->restart_pos);
+    priv_sock_send_int(sess->proto_fd, sess->restart_pos);//发送断点长度
+
 
     // //接收结果
     // char res = priv_sock_recv_result(sess->proto_fd);

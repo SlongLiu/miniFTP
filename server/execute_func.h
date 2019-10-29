@@ -27,4 +27,6 @@ void run_rmd(Session_t *sess); //删除目录
 void run_rnfr(Session_t *sess); //重命名开始 
 void run_rnto(Session_t *sess); //重命名为
 
+void run_rest(Session_t *sess);//参数传输断点
+
 #endif

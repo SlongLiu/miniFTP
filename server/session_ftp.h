@@ -25,7 +25,7 @@ typedef struct
     
     int is_translating_data; //是否在数据传输阶段 是1 否0
 
-    long long restart_pos; //传输断点
+    int restart_pos; //传输断点
 
     char* rnfr_name;
 

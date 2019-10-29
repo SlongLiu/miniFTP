@@ -135,6 +135,8 @@ void privop_pasv_get_data_sock(Session_t *sess){
     int argsLen = priv_sock_recv_int(sess->nobody_fd); //接受args 的长度
     priv_sock_recv_str(sess->nobody_fd, sess->args, argsLen); //接受args 文件地址
     
+    sess->restart_pos = priv_sock_recv_int(sess->nobody_fd);//接受断点长度
+    printf("sess->restart_pos=%d in nobody\n", sess->restart_pos);
 
     printf("sess->com: %s\n", sess->com);
     printf("sess->args: %s\n", sess->args);
@@ -153,6 +155,10 @@ void privop_pasv_get_data_sock(Session_t *sess){
     printf("transret = %d\n", transret);
     priv_sock_send_result(sess->nobody_fd, transret);
 
+    if(transret == 2 && strcmp(sess->com, "RETR") == 0){
+        priv_sock_send_int(sess->nobody_fd, sess->restart_pos);
+    }
+
     // priv_sock_send_int(sess->nobody_fd, data_fd);
     // close(data_fd);
 }
@@ -165,6 +171,11 @@ void privop_pasv_accept(Session_t *sess){
 
     int argsLen = priv_sock_recv_int(sess->nobody_fd); //接受args 的长度
     priv_sock_recv_str(sess->nobody_fd, sess->args, argsLen); //接受args 文件地址
+    
+    if (strcmp(sess->com, "RETR") == 0){
+        sess->restart_pos = priv_sock_recv_int(sess->nobody_fd);//接受断点长度
+        printf("sess->restart_pos=%d\n", sess->restart_pos);
+    }
     
     printf("sess->com: %s\n", sess->com);
     printf("sess->args: %s\n", sess->args);
@@ -196,6 +207,10 @@ void privop_pasv_accept(Session_t *sess){
     close(sess->listen_fd);
     sess->listen_fd = -1;
 
+    if(transret == 2 && strcmp(sess->com, "RETR") == 0){
+        priv_sock_send_int(sess->nobody_fd, sess->restart_pos);
+    }
+
     // priv_sock_send_int(sess->nobody_fd, data_fd);
     // close(data_fd);
 
@@ -224,10 +239,9 @@ int transferFIleNobody(Session_t *sess){
         ERR_EXIT("fstat");
     }
 
-            
-
     //判断断点续传
-    unsigned long filesize = sbuf.st_size;//剩余的文件字节
+    unsigned long filesize = sbuf.st_size;//文件大小
+    // printf("filesize: %d\n", filesize);
     int offset = sess->restart_pos;
     if(offset != 0)
     {
@@ -241,7 +255,7 @@ int transferFIleNobody(Session_t *sess){
     }
         
     //仅有二进制模式
-    printf("Binary mode\n");
+    // printf("Binary mode\n");
 
     // //记录时间
     // sess->start_time_sec = get_curr_time_sec();
@@ -252,23 +266,14 @@ int transferFIleNobody(Session_t *sess){
     int flag = 1; //记录下载的结果
     int nleft = filesize; //剩余字节数
     int block_size = 0; //一次传输的字节数
-    const int kSize = 65536;
+    const int kSize = 1024;
     while(nleft > 0)
     {
         block_size = (nleft > kSize) ? kSize : nleft;//读取字节数
         //sendfile发生在内核，更加高效
         int nwrite = sendfile(sess->data_fd, fd, NULL, block_size);
-
-        printf("block_size = %d, nwrite = %d\n", block_size, nwrite);
-
-        // if(sess->is_receive_abor == 1)
-        // {
-        //     flag = 2; //ABOR
-        //     //426
-        //     reply_ftp(sess, FTP_BADSENDNET, "Interupt downloading file.");
-        //     sess->is_receive_abor = 0;
-        //     break;
-        // }
+        // sess->restart_pos += nwrite;
+        // printf("block_size = %d, nwrite = %d\n", block_size, nwrite);
 
         if(nwrite == -1)
         {
@@ -285,7 +290,7 @@ int transferFIleNobody(Session_t *sess){
     close(sess->data_fd); //关闭tcp连接
     sess->data_fd = -1;
 
-    if (flag == 1) return -1;
+    if (flag == 1) return 2;
 
     printf("Finished transfer in transferFIleNobody.\n");
     return 1;
@@ -420,4 +425,19 @@ int transFileList(Session_t *sess)
     close(sess->data_fd); //关闭tcp连接
     sess->data_fd = -1;
     return 1;
+}
+
+void privop_cwd(Session_t *sess){
+        int comLen= priv_sock_recv_int(sess->nobody_fd); //接受com 的长度
+        priv_sock_recv_str(sess->nobody_fd, sess->com, comLen); //接受com 文件地址
+
+        int argsLen = priv_sock_recv_int(sess->nobody_fd); //接受args 的长度
+        priv_sock_recv_str(sess->nobody_fd, sess->args, argsLen); //接受args 文件地址
+
+    if(chdir(sess->args) == -1) {
+        priv_sock_send_int(sess->nobody_fd, -1);
+        return;
+    }else{
+        priv_sock_send_int(sess->nobody_fd, 1);
+    }
 }

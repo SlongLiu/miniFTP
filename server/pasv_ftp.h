@@ -12,5 +12,6 @@ void privop_pasv_accept(Session_t *sess);
 int transferFIleNobody(Session_t *sess);
 int uploadFIleNobody(Session_t *sess, int is_appe);
 int transFileList(Session_t *sess);
+void privop_cwd(Session_t *sess);
 
 #endif

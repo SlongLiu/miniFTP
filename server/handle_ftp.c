@@ -72,49 +72,13 @@ void handle_nobody(Session_t* sess){
             case 5:
                 printf("5 CLOSE NOBODY\n");
                 break;
+            case 6:
+                printf("Change work dictionary(NOBODY)\n");
+                privop_cwd(sess);
+                break;
             default:
                 fprintf(stderr, "Unkown command\n");
                 exit(EXIT_FAILURE);
         }
     }
-}
-
-
-void set_nobody()
-{
-    //基本思路
-    //1. 首先获取nobody的uid、gid
-    //2. 然后逐项进行设置
-    struct passwd *pw;
-    if((pw = getpwnam("nobody")) == NULL)
-        ERR_EXIT("getpwnam");
-
-    //先获取gid
-    if(setegid(pw->pw_gid) == -1)
-        ERR_EXIT("setegid");
-
-    //euid---有效的用户ID
-    if(seteuid(pw->pw_uid) == -1)
-        ERR_EXIT("seteuid");
-}
-
-
-void set_bind_capabilities(){
-    struct __user_cap_header_struct cap_user_header;
-    cap_user_header.version = _LINUX_CAPABILITY_VERSION_1;
-    cap_user_header.pid = getpid();
-
-    struct __user_cap_data_struct cap_user_data;
-    __u32 cap_mask = 0; //类似于权限的集合
-    cap_mask |= (1 << CAP_NET_BIND_SERVICE); //0001000000
-    cap_user_data.effective = cap_mask;
-    cap_user_data.permitted = cap_mask;
-    cap_user_data.inheritable = 0; //子进程不继承特权
-
-    if(capset(&cap_user_header, &cap_user_data) == -1)
-        ERR_EXIT("capset");
-}
-
-int capset(cap_user_header_t hdrp, const cap_user_data_t datap){
-    return syscall(SYS_capset, hdrp, datap);
 }
