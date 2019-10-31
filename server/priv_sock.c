@@ -56,19 +56,19 @@ void priv_sock_set_nobody_context(Session_t *sess){
 
 void priv_sock_send_cmd(int fd, char cmd)
 {
-    // printf("Begin priv_sock_send_cmd\n");
+    printf("Begin priv_sock_send_cmd\n");
     int ret = writen(fd, &cmd, sizeof cmd);
     if(ret != sizeof(cmd))
     {
         fprintf(stderr, "priv_sock_send_cmd error\n");
         exit(EXIT_FAILURE);
     }
-    // printf("End priv_sock_send_cmd\n");
+    printf("End priv_sock_send_cmd\n");
 }
 
 char priv_sock_recv_cmd(int fd)
 {
-    // printf("Begin priv_sock_recv_cmd\n");
+    printf("Begin priv_sock_recv_cmd\n");
     char res;
     int ret = readn(fd, &res, sizeof res);
 
@@ -82,7 +82,7 @@ char priv_sock_recv_cmd(int fd)
         fprintf(stderr, "priv_sock_recv_cmd error\n");
         exit(EXIT_FAILURE);
     }
-    // printf("End priv_sock_recv_cmd\n");
+    printf("End priv_sock_recv_cmd\n");
     return res;
 }
 

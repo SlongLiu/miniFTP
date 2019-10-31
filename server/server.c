@@ -80,6 +80,12 @@ int  main(int argc, const char *argv[]){
 			printf("Connected!connfd=%d\n", connfd);
 		}
 
+	// 	if(chdir('tmp') == -1) {
+    //     //550
+    //     printf("CMD filed\n");
+    //     continue;
+    // }
+
 		//每当用户连接上，就fork一个子进程
         if((pid = fork()) == -1)
             ERR_EXIT("fork");

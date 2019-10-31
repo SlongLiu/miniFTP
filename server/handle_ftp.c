@@ -49,6 +49,9 @@ void handle_nobody(Session_t* sess){
     char cmd;
     while(1)
     {
+        memset(sess->command, 0, sizeof(sess->command));
+        memset(sess->com, 0, sizeof(sess->com));
+        memset(sess->args, 0, sizeof(sess->args));
         cmd = priv_sock_recv_cmd(sess->nobody_fd);
         printf("proto-->nobody: Receive cmd %d\n", cmd);
         switch (cmd)

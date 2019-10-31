@@ -266,7 +266,7 @@ int transferFIleNobody(Session_t *sess){
     int flag = 1; //记录下载的结果
     int nleft = filesize; //剩余字节数
     int block_size = 0; //一次传输的字节数
-    const int kSize = 1024;
+    const int kSize = 65536;
     while(nleft > 0)
     {
         block_size = (nleft > kSize) ? kSize : nleft;//读取字节数
@@ -433,6 +433,8 @@ void privop_cwd(Session_t *sess){
 
         int argsLen = priv_sock_recv_int(sess->nobody_fd); //接受args 的长度
         priv_sock_recv_str(sess->nobody_fd, sess->args, argsLen); //接受args 文件地址
+
+    printf("com:%s args:%s\n",sess->com, sess->args);
 
     if(chdir(sess->args) == -1) {
         priv_sock_send_int(sess->nobody_fd, -1);

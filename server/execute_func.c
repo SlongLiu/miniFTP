@@ -46,6 +46,8 @@ void execute_map(Session_t *sess){
                 run_list(sess);
             }else if (strcmp(sess->com, "REST")==0){
                 run_rest(sess);
+            }else if (strcmp(sess->com, "DELE")==0){
+                run_dele(sess);
             }else{
                 reply_ftp(sess, 504, "Undefined command");
             }
@@ -409,4 +411,25 @@ void run_rest(Session_t *sess){
     sess->restart_pos = atoi(sess->args);
     printf("sess->restart_pos=%d\n", sess->restart_pos);
     reply_ftp(sess, 350, "Waiting for the next command.");
+}
+
+void run_dele(Session_t *sess){
+    struct stat buf; 
+    if(stat(sess->args, &buf) == -1) //获取文件状态
+    {
+        printf("Failed to get the stat of file.\n");
+        reply_ftp(sess, 500, "Failed to get the stat of file.");
+        return;
+    }
+
+    if(__S_IFDIR & buf.st_mode){
+        reply_ftp(sess, 500, "This is a folder, please use rmd");
+        return;
+    }
+
+    if(remove(sess->args)==0){
+        reply_ftp(sess, 250, "Successful delete file");
+    }else{
+        reply_ftp(sess, 500, "Unsuccessful delete file");
+    }
 }

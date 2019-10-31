@@ -29,4 +29,6 @@ void run_rnto(Session_t *sess); //重命名为
 
 void run_rest(Session_t *sess);//参数传输断点
 
+void run_dele(Session_t *sess);
+
 #endif
